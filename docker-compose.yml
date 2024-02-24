@@ -1,0 +1,59 @@
+version: '3.1'
+services:
+  db:
+    # Configuración de la base de datos PostgreSQL
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - postgres
+
+  api:
+    # Configuración del servicio de la API en Python
+    image: python:3.9
+    command: >
+      sh -c "
+      pip install --upgrade pip && 
+      pip install -r /app/requirements.txt 
+      && python /app/app.py"
+    networks:
+      - postgres
+      - api_network
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+
+  centos:
+    # Configuración de CentOS con ajustes específicos
+    image: centos
+    command: >
+      bash -c "
+      sed -i -e 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-* &&
+      sed -i -e 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* &&
+      yum install -y gcc make postgresql-devel python3-devel &&
+      yum install -y python3 python3-pip &&
+      pip3 install psycopg2-binary &&
+      python3 /usr/local/bin/load.py"
+    networks:
+      - postgres
+      - centos_network
+    volumes:
+      - /Users/dd/docker/xaltestde/centos/data:/tmp
+      - /Users/dd/docker/xaltestde/centos/scripts:/usr/local/bin
+
+networks:
+  postgres:
+    driver: bridge
+
+  api_network:
+    driver: bridge
+
+  centos_network:
+    driver: bridge
