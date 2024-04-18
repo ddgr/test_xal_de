@@ -8,7 +8,7 @@ auth = HTTPBasicAuth()
 
 # Configuración de la base de datos
 db_pool = pool.SimpleConnectionPool(1, 10, # Mínimo y máximo número de conexiones.
-    host='xaltestde-db-1',
+    host='test_xal_de-db-1',
     port=5432,
     user='postgres',
     password='example',

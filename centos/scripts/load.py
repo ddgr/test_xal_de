@@ -71,7 +71,7 @@ def insert_data_from_csv(cursor, file_path):
 
 def main():
     # Cambiar estos valores según la configuración de tu PostgreSQL
-    host = "xaltestde-db-1"
+    host = " test_xal_de-db-1"
     port = 5432
     username = "postgres"
     password = "example"
