@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.8'
 services:
   db:
     # Configuración de la base de datos PostgreSQL
@@ -11,10 +11,15 @@ services:
       - 5432:5432
     networks:
       - postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     # Configuración del servicio de la API en Python
-    image: python:3.9
+    image: python
     command: >
       sh -c "
       pip install --upgrade pip && 
@@ -26,7 +31,7 @@ services:
     depends_on:
       - db
     ports:
-      - "8000:8000"
+      - "8000:5000"
     volumes:
       - ./api:/app
 
@@ -47,6 +52,63 @@ services:
     volumes:
       - /Users/dd/docker/xaltestde/centos/data:/tmp
       - /Users/dd/docker/xaltestde/centos/scripts:/usr/local/bin
+
+  airflow-init:
+    image: apache/airflow:latest
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:example@db/postgres
+    command: >
+      bash -c "airflow db migrate &&
+      airflow users create --role Admin --username admin --email dd_gr@outlook.com --firstname daniel --lastname gonzalez --password admin123"
+    depends_on:
+      db:
+         condition: service_healthy
+    networks:
+      - postgres
+
+  airflow-webserver:
+    image: apache/airflow:latest
+    restart: always
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:example@db/postgres
+      - AIRFLOW__CORE__FERNET_KEY=GMWUu3EMD1fI9mXztzP91bWQSXJoqmnQIiPPtNeFhF0=
+      - AIRFLOW__WEBSERVER__SECRET_KEY=your_secret_key
+      - AIRFLOW__WEBSERVER__RBAC=True
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    command: airflow webserver
+    networks:
+      - postgres
+      - centos_network
+
+  airflow-scheduler:
+    image: apache/airflow:latest
+    restart: always
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:example@db/postgres
+      - AIRFLOW__CORE__FERNET_KEY=GMWUu3EMD1fI9mXztzP91bWQSXJoqmnQIiPPtNeFhF0=
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+    command: airflow scheduler
+    networks:
+      - postgres
+      - centos_network
 
 networks:
   postgres:
