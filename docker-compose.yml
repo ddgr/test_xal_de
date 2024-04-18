@@ -50,8 +50,8 @@ services:
       - postgres
       - centos_network
     volumes:
-      - /Users/dd/docker/xaltestde/centos/data:/tmp
-      - /Users/dd/docker/xaltestde/centos/scripts:/usr/local/bin
+      - ./centos/data:/tmp
+      - ./centos/scripts:/usr/local/bin
 
   airflow-init:
     image: apache/airflow:latest
